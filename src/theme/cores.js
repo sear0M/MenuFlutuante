@@ -1,4 +1,3 @@
-// Paleta de cores usada em todo o aplicativo.
 export const CORES = {
   primaria: '#2E5BBA',
   primariaEscura: '#1F3F85',

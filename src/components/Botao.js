@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { CORES } from '../theme/cores';
 
-// Botão reutilizável. variante: 'primario' (preenchido) ou 'secundario' (contorno).
 export default function Botao({ titulo, onPress, icone, variante = 'primario', style }) {
   const secundario = variante === 'secundario';
   const corTexto = secundario ? CORES.primaria : CORES.branco;

@@ -1,7 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-// Guarda em memória os cálculos de IMC feitos na sessão, para que a tela
-// "Histórico" consiga mostrar o que foi calculado na tela "Calcular IMC".
 const HistoricoContext = createContext(null);
 
 let proximoId = 1;

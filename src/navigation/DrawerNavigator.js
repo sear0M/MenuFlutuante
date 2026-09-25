@@ -11,7 +11,6 @@ import { CORES } from '../theme/cores';
 
 const Drawer = createDrawerNavigator();
 
-// Cria a função de ícone do menu: ícone "cheio" quando a tela está ativa.
 function icone(nome) {
   return ({ focused, color, size }) => (
     <Ionicons name={focused ? nome : `${nome}-outline`} size={size} color={color} />
@@ -24,11 +23,8 @@ export default function DrawerNavigator() {
       initialRouteName="Inicio"
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
-        // "front": o menu desliza por cima da tela, como um menu flutuante.
         drawerType: 'front',
-        // Área maior para o gesto de arrastar, além da borda usada pelo "voltar" do Android.
         swipeEdgeWidth: 60,
-        // Textos lidos pelo leitor de tela (o padrão da biblioteca é em inglês).
         headerLeft: (props) => (
           <DrawerToggleButton {...props} accessibilityLabel="Abrir menu de navegação" />
         ),

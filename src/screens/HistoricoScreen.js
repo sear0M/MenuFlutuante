@@ -13,8 +13,6 @@ function formatarHora(data) {
   )}:${doisDigitos(data.getMinutes())}`;
 }
 
-// Pede confirmação antes de apagar. No navegador o Alert com botões não
-// funciona, por isso usamos window.confirm na versão web.
 function confirmar(mensagem, aoConfirmar) {
   if (Platform.OS === 'web') {
     if (window.confirm(mensagem)) aoConfirmar();

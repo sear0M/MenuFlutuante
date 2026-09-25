@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { INTEGRANTES } from '../constants/grupo';
 import { CORES } from '../theme/cores';
 
-// Iniciais do nome para o "avatar" (ex.: "Maria Souza" -> "MS").
 function iniciais(nome) {
   const partes = nome.trim().split(/\s+/);
   const primeira = partes[0]?.[0] ?? '';

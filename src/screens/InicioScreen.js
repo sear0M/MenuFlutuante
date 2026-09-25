@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Botao from '../components/Botao';
 import { CORES } from '../theme/cores';
 
-// Atalhos para as outras telas (a navegação principal é pelo menu flutuante).
 const ATALHOS = [
   { rota: 'CalcularImc', titulo: 'Calcular IMC', descricao: 'Informe peso e altura', icone: 'calculator-outline' },
   { rota: 'Historico', titulo: 'Histórico', descricao: 'Veja os cálculos feitos', icone: 'time-outline' },
@@ -12,8 +11,6 @@ const ATALHOS = [
   { rota: 'Integrantes', titulo: 'Integrantes', descricao: 'Quem fez o aplicativo', icone: 'people-outline' },
 ];
 
-// No Android, arrastar a partir da borda esquerda aciona o "voltar" do sistema e,
-// no navegador, o gesto não existe. Por isso essa parte da dica só aparece no iPhone.
 const DICA_GESTO =
   Platform.OS === 'ios' ? ' ou arraste o dedo a partir da borda esquerda da tela' : '';
 

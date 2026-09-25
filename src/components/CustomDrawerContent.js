@@ -7,15 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { INTEGRANTES } from '../constants/grupo';
 import { CORES } from '../theme/cores';
 
-// Conteúdo personalizado do menu flutuante: cabeçalho, lista de telas e rodapé.
-// Usamos um ScrollView comum (em vez do DrawerContentScrollView) para o cabeçalho
-// azul ocupar toda a largura; o espaço da barra de status vem de `insets.top`.
 export default function CustomDrawerContent(props) {
   const insets = useSafeAreaInsets();
   const statusMenu = useDrawerStatus();
 
-  // Se o menu abrir pelo botão ☰ enquanto o teclado está aberto,
-  // fecha o teclado para ele não cobrir o menu.
   useEffect(() => {
     if (statusMenu === 'open') {
       Keyboard.dismiss();
