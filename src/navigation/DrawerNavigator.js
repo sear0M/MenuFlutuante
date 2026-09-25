@@ -1,4 +1,4 @@
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createDrawerNavigator, DrawerToggleButton } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 
 import CustomDrawerContent from '../components/CustomDrawerContent';
@@ -26,6 +26,13 @@ export default function DrawerNavigator() {
       screenOptions={{
         // "front": o menu desliza por cima da tela, como um menu flutuante.
         drawerType: 'front',
+        // Área maior para o gesto de arrastar, além da borda usada pelo "voltar" do Android.
+        swipeEdgeWidth: 60,
+        // Textos lidos pelo leitor de tela (o padrão da biblioteca é em inglês).
+        headerLeft: (props) => (
+          <DrawerToggleButton {...props} accessibilityLabel="Abrir menu de navegação" />
+        ),
+        overlayAccessibilityLabel: 'Fechar menu',
         headerStyle: { backgroundColor: CORES.primaria },
         headerTintColor: CORES.branco,
         headerTitleStyle: { fontWeight: 'bold' },

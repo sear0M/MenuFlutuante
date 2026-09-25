@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Botao from '../components/Botao';
@@ -11,6 +11,11 @@ const ATALHOS = [
   { rota: 'TabelaImc', titulo: 'Tabela de IMC', descricao: 'Classificação da OMS', icone: 'list-outline' },
   { rota: 'Integrantes', titulo: 'Integrantes', descricao: 'Quem fez o aplicativo', icone: 'people-outline' },
 ];
+
+// No Android, arrastar a partir da borda esquerda aciona o "voltar" do sistema e,
+// no navegador, o gesto não existe. Por isso essa parte da dica só aparece no iPhone.
+const DICA_GESTO =
+  Platform.OS === 'ios' ? ' ou arraste o dedo a partir da borda esquerda da tela' : '';
 
 export default function InicioScreen({ navigation }) {
   return (
@@ -26,8 +31,8 @@ export default function InicioScreen({ navigation }) {
       <View style={styles.dica}>
         <Ionicons name="information-circle-outline" size={22} color={CORES.primaria} />
         <Text style={styles.dicaTexto}>
-          Toque no ícone <Text style={styles.negrito}>☰</Text> no canto superior esquerdo ou arraste
-          o dedo a partir da borda esquerda da tela para abrir o menu.
+          Toque no ícone <Text style={styles.negrito}>☰</Text> no canto superior esquerdo
+          {DICA_GESTO} para abrir o menu.
         </Text>
       </View>
 

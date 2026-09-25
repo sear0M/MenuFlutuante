@@ -93,10 +93,10 @@ export default function CalcularImcScreen({ navigation }) {
         {resultado ? (
           <View style={[styles.resultado, { borderColor: resultado.cor }]}>
             <Text style={styles.resultadoRotulo}>Seu IMC é</Text>
-            <Text style={[styles.resultadoValor, { color: resultado.cor }]}>
+            <Text style={[styles.resultadoValor, { color: resultado.corTexto }]}>
               {formatarNumero(resultado.imc, 1)}
             </Text>
-            <Text style={[styles.resultadoClassificacao, { color: resultado.cor }]}>
+            <Text style={[styles.resultadoClassificacao, { color: resultado.corTexto }]}>
               {resultado.classificacao}
             </Text>
             <Text style={styles.resultadoDetalhe}>

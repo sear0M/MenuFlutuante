@@ -63,7 +63,7 @@ export default function HistoricoScreen({ navigation }) {
             <View style={styles.itemTextos}>
               <Text style={styles.itemImc}>
                 IMC {formatarNumero(item.imc, 1)}{' '}
-                <Text style={[styles.itemClassificacao, { color: item.cor }]}>
+                <Text style={[styles.itemClassificacao, { color: item.corTexto }]}>
                   · {item.classificacao}
                 </Text>
               </Text>

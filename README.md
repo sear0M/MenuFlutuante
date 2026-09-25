@@ -20,11 +20,13 @@ para navegar entre as telas.
 | **Tabela de IMC** | Tabela de classificação da OMS e a fórmula do IMC |
 | **Integrantes** | Nome do grupo e dos integrantes |
 
-O menu abre pelo ícone ☰ no cabeçalho ou arrastando o dedo a partir da borda esquerda da tela.
+O menu abre pelo ícone ☰ no cabeçalho ou pelo botão "Abrir menu" da tela inicial.
+No iPhone também dá para abrir arrastando o dedo a partir da borda esquerda da tela.
 
 ## Como executar
 
-Pré-requisito: Node.js 20 ou superior e o app **Expo Go** no celular.
+Pré-requisito: Node.js 20.19.4 ou superior (recomendado: a versão LTS atual) e o app
+**Expo Go** no celular.
 
 ```bash
 npm install
