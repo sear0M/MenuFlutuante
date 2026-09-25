@@ -18,7 +18,7 @@ para navegar entre as telas.
 | **Calcular IMC** | Recebe peso e altura, calcula o IMC e mostra a classificação |
 | **Histórico** | Lista os cálculos feitos na sessão (permite apagar um ou todos) |
 | **Tabela de IMC** | Tabela de classificação da OMS e a fórmula do IMC |
-| **Integrantes** | Nome do grupo e dos integrantes |
+| **Integrantes** | Nomes dos integrantes do grupo |
 
 O menu abre pelo ícone ☰ no cabeçalho ou pelo botão "Abrir menu" da tela inicial.
 No iPhone também dá para abrir arrastando o dedo a partir da borda esquerda da tela.

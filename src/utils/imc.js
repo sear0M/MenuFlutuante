@@ -38,7 +38,9 @@ export function calcularImc(peso, alturaEmMetros) {
 // classificar e de exibir, para o valor mostrado na tela (ex.: "25,0")
 // sempre bater com a faixa da tabela.
 export function arredondarImc(imc) {
-  return Math.round(imc * 10) / 10;
+  // toPrecision(12) remove o "ruído" das contas com casas decimais
+  // (ex.: 80 / 1,6² dá 31,249999... em vez de 31,25), para arredondar certo.
+  return Math.round(Number((imc * 10).toPrecision(12))) / 10;
 }
 
 export function classificarImc(imc) {

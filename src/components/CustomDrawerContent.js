@@ -1,5 +1,6 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { DrawerItemList } from '@react-navigation/drawer';
+import { useEffect } from 'react';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DrawerItemList, useDrawerStatus } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,6 +12,15 @@ import { CORES } from '../theme/cores';
 // azul ocupar toda a largura; o espaço da barra de status vem de `insets.top`.
 export default function CustomDrawerContent(props) {
   const insets = useSafeAreaInsets();
+  const statusMenu = useDrawerStatus();
+
+  // Se o menu abrir pelo botão ☰ enquanto o teclado está aberto,
+  // fecha o teclado para ele não cobrir o menu.
+  useEffect(() => {
+    if (statusMenu === 'open') {
+      Keyboard.dismiss();
+    }
+  }, [statusMenu]);
 
   return (
     <View style={styles.container}>
