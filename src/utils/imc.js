@@ -52,17 +52,19 @@ export function avaliarImc(textoPeso, textoAltura) {
     return { erro: 'Informe uma altura entre 0,40 e 2,60 m (ou 40 a 260 cm).' };
   }
 
+  return { resultado: montarResultado(peso, altura) };
+}
+
+export function montarResultado(peso, altura) {
   const imc = arredondarImc(calcularImc(peso, altura));
   const faixa = classificarImc(imc);
 
   return {
-    resultado: {
-      peso,
-      altura,
-      imc,
-      classificacao: faixa.classificacao,
-      cor: faixa.cor,
-      corTexto: faixa.corTexto,
-    },
+    peso,
+    altura,
+    imc,
+    classificacao: faixa.classificacao,
+    cor: faixa.cor,
+    corTexto: faixa.corTexto,
   };
 }

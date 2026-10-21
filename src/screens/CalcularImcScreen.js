@@ -11,12 +11,10 @@ import {
 } from 'react-native';
 
 import Botao from '../components/Botao';
-import { useHistorico } from '../context/HistoricoContext';
 import { CORES } from '../theme/cores';
 import { avaliarImc, formatarNumero } from '../utils/imc';
 
 export default function CalcularImcScreen({ navigation }) {
-  const { adicionarRegistro } = useHistorico();
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [resultado, setResultado] = useState(null);
@@ -35,7 +33,6 @@ export default function CalcularImcScreen({ navigation }) {
 
     setErro('');
     setResultado(avaliacao.resultado);
-    adicionarRegistro(avaliacao.resultado);
   }
 
   function limpar() {
@@ -110,9 +107,9 @@ export default function CalcularImcScreen({ navigation }) {
                 onPress={() => navigation.navigate('TabelaImc')}
               />
               <Botao
-                titulo="Ver histórico"
+                titulo="Ver alunos"
                 variante="secundario"
-                onPress={() => navigation.navigate('Historico')}
+                onPress={() => navigation.navigate('Alunos')}
               />
             </View>
           </View>

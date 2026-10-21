@@ -3,11 +3,13 @@ import { Ionicons } from '@expo/vector-icons';
 
 import CustomDrawerContent from '../components/CustomDrawerContent';
 import CalcularImcScreen from '../screens/CalcularImcScreen';
-import HistoricoScreen from '../screens/HistoricoScreen';
+import CompararAlunosScreen from '../screens/CompararAlunosScreen';
+import DadosScreen from '../screens/DadosScreen';
 import InicioScreen from '../screens/InicioScreen';
 import IntegrantesScreen from '../screens/IntegrantesScreen';
 import TabelaImcScreen from '../screens/TabelaImcScreen';
 import { CORES } from '../theme/cores';
+import AlunosNavigator from './AlunosNavigator';
 
 const Drawer = createDrawerNavigator();
 
@@ -49,9 +51,19 @@ export default function DrawerNavigator() {
         options={{ title: 'Calcular IMC', drawerIcon: icone('calculator') }}
       />
       <Drawer.Screen
-        name="Historico"
-        component={HistoricoScreen}
-        options={{ title: 'Histórico', drawerIcon: icone('time') }}
+        name="Alunos"
+        component={AlunosNavigator}
+        options={{ title: 'Alunos', drawerIcon: icone('person'), headerShown: false }}
+      />
+      <Drawer.Screen
+        name="Comparar"
+        component={CompararAlunosScreen}
+        options={{ title: 'Comparar alunos', drawerIcon: icone('git-compare') }}
+      />
+      <Drawer.Screen
+        name="Dados"
+        component={DadosScreen}
+        options={{ title: 'Dados e backup', drawerIcon: icone('shield-checkmark') }}
       />
       <Drawer.Screen
         name="TabelaImc"

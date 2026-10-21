@@ -6,7 +6,8 @@ import { CORES } from '../theme/cores';
 
 const ATALHOS = [
   { rota: 'CalcularImc', titulo: 'Calcular IMC', descricao: 'Informe peso e altura', icone: 'calculator-outline' },
-  { rota: 'Historico', titulo: 'Histórico', descricao: 'Veja os cálculos feitos', icone: 'time-outline' },
+  { rota: 'Alunos', titulo: 'Alunos', descricao: 'Cadastre e acompanhe cada aluno', icone: 'people-outline' },
+  { rota: 'Comparar', titulo: 'Comparar alunos', descricao: 'Compare a evolução de cada um', icone: 'git-compare-outline' },
   { rota: 'TabelaImc', titulo: 'Tabela de IMC', descricao: 'Classificação da OMS', icone: 'list-outline' },
   { rota: 'Integrantes', titulo: 'Integrantes', descricao: 'Quem fez o aplicativo', icone: 'people-outline' },
 ];
