@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# configuracao do Firebase com os dados do projeto (nao vai para o GitHub)
+src/firebaseConfig.js

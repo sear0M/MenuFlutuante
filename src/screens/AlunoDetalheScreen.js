@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import Botao from '../components/Botao';
 import GraficoPeso from '../components/GraficoPeso';
@@ -15,31 +14,46 @@ import { confirmar } from '../utils/confirmar';
 import { formatarNumero } from '../utils/imc';
 
 export default function AlunoDetalheScreen({ navigation, route }) {
-  const db = useSQLiteContext();
   const alunoId = route.params.alunoId;
   const [aluno, setAluno] = useState(null);
   const [aba, setAba] = useState('medicoes');
+  const [erro, setErro] = useState('');
 
   useFocusEffect(
     useCallback(() => {
-      buscarAluno(db, alunoId).then((encontrado) => {
-        if (encontrado) setAluno(encontrado);
-      });
-    }, [db, alunoId])
+      buscarAluno(alunoId)
+        .then((encontrado) => {
+          if (encontrado) setAluno(encontrado);
+          setErro('');
+        })
+        .catch(() => setErro('Não foi possível carregar o aluno. Verifique a internet.'));
+    }, [alunoId])
   );
 
   async function apagarMedicao(medicao) {
-    await removerMedicao(db, medicao.id);
-    setAluno(await buscarAluno(db, alunoId));
+    try {
+      await removerMedicao(alunoId, medicao.id);
+      setAluno(await buscarAluno(alunoId));
+    } catch (e) {
+      setErro('Não foi possível apagar a medição. Verifique a internet e tente de novo.');
+    }
   }
 
   async function apagarAluno() {
-    await removerAluno(db, alunoId);
-    navigation.goBack();
+    try {
+      await removerAluno(alunoId);
+      navigation.goBack();
+    } catch (e) {
+      setErro('Não foi possível excluir o aluno. Verifique a internet e tente de novo.');
+    }
   }
 
   if (!aluno) {
-    return <View style={styles.tela} />;
+    return (
+      <View style={[styles.tela, styles.carregando]}>
+        {erro ? <Text style={styles.erro}>{erro}</Text> : <ActivityIndicator size="large" color={CORES.primaria} />}
+      </View>
+    );
   }
 
   const medicoesDecrescentes = [...aluno.medicoes].reverse();
@@ -56,6 +70,8 @@ export default function AlunoDetalheScreen({ navigation, route }) {
           <Text style={styles.info}>Altura padrão {formatarNumero(aluno.alturaPadrao, 2)} m</Text>
         ) : null}
       </View>
+
+      {erro ? <Text style={styles.erro}>{erro}</Text> : null}
 
       <View style={styles.abas}>
         <Pressable
@@ -199,6 +215,17 @@ const styles = StyleSheet.create({
   conteudo: {
     padding: 20,
     paddingBottom: 40,
+  },
+  carregando: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  erro: {
+    color: CORES.erro,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   cabecalho: {
     backgroundColor: CORES.primaria,

@@ -1,52 +1,63 @@
+import { addDoc, collection, doc, getDoc, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
+
+import { db } from './firebase';
 import { listarMedicoes } from './medicoes';
 
-function paraAluno(linha) {
+const alunosRef = collection(db, 'alunos');
+
+function paraAluno(documento) {
+  const dados = documento.data();
   return {
-    id: String(linha.id),
-    nome: linha.nome,
-    dataNascimento: linha.data_nascimento,
-    alturaPadrao: linha.altura_padrao,
-    consentimentoEm: linha.consentimento_em,
-    criadoEm: linha.criado_em,
+    id: documento.id,
+    nome: dados.nome,
+    dataNascimento: dados.dataNascimento,
+    alturaPadrao: dados.alturaPadrao ?? null,
+    consentimentoEm: dados.consentimentoEm,
+    criadoEm: dados.criadoEm,
   };
 }
 
-export async function listarAlunos(db) {
-  const linhas = await db.getAllAsync('SELECT * FROM alunos ORDER BY nome COLLATE NOCASE ASC');
-  const alunos = linhas.map(paraAluno);
-  for (const aluno of alunos) {
-    aluno.medicoes = await listarMedicoes(db, aluno.id);
-  }
+export async function listarAlunos() {
+  const resultado = await getDocs(alunosRef);
+  const alunos = resultado.docs.map(paraAluno);
+  alunos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+  await Promise.all(
+    alunos.map(async (aluno) => {
+      aluno.medicoes = await listarMedicoes(aluno.id);
+    })
+  );
   return alunos;
 }
 
-export async function buscarAluno(db, id) {
-  const linha = await db.getFirstAsync('SELECT * FROM alunos WHERE id = ?', [Number(id)]);
-  if (!linha) return null;
-  const aluno = paraAluno(linha);
-  aluno.medicoes = await listarMedicoes(db, aluno.id);
+export async function buscarAluno(id) {
+  const documento = await getDoc(doc(db, 'alunos', id));
+  if (!documento.exists()) return null;
+  const aluno = paraAluno(documento);
+  aluno.medicoes = await listarMedicoes(id);
   return aluno;
 }
 
-export async function salvarAluno(db, { id, nome, dataNascimento, alturaPadrao }) {
+export async function salvarAluno({ id, nome, dataNascimento, alturaPadrao }) {
   if (id) {
-    await db.runAsync('UPDATE alunos SET nome = ?, data_nascimento = ?, altura_padrao = ? WHERE id = ?', [
-      nome,
-      dataNascimento,
-      alturaPadrao,
-      Number(id),
-    ]);
-    return String(id);
+    await updateDoc(doc(db, 'alunos', id), { nome, dataNascimento, alturaPadrao });
+    return id;
   }
   const agora = new Date().toISOString();
-  const resultado = await db.runAsync(
-    `INSERT INTO alunos (nome, data_nascimento, altura_padrao, consentimento_em, criado_em)
-     VALUES (?, ?, ?, ?, ?)`,
-    [nome, dataNascimento, alturaPadrao, agora, agora]
-  );
-  return String(resultado.lastInsertRowId);
+  const novo = await addDoc(alunosRef, {
+    nome,
+    dataNascimento,
+    alturaPadrao,
+    consentimentoEm: agora,
+    criadoEm: agora,
+  });
+  return novo.id;
 }
 
-export async function removerAluno(db, id) {
-  await db.runAsync('DELETE FROM alunos WHERE id = ?', [Number(id)]);
+export async function removerAluno(id) {
+  // O Firestore não apaga as subcoleções sozinho: as medições são apagadas junto com o aluno.
+  const medicoes = await getDocs(collection(db, 'alunos', id, 'medicoes'));
+  const lote = writeBatch(db);
+  medicoes.forEach((medicao) => lote.delete(medicao.ref));
+  lote.delete(doc(db, 'alunos', id));
+  await lote.commit();
 }

@@ -3,8 +3,9 @@
 Aplicativo em React Native (Expo) para calcular o **IMC (Índice de Massa Corporal)**.
 A navegação entre as telas é feita pelo **Menu Flutuante (Drawer) do React Navigation**.
 
-O app calcula o IMC a partir do peso e da altura, mostra a classificação segundo a OMS,
-guarda os cálculos feitos em um histórico e traz a tabela de referência.
+O app calcula o IMC a partir do peso e da altura e mostra a classificação segundo a OMS.
+Também cadastra alunos e guarda as medições de cada um num banco de dados na nuvem, o
+**Firebase Firestore**, para acompanhar a evolução e comparar alunos.
 
 ## Integrantes do grupo
 
@@ -22,31 +23,41 @@ guarda os cálculos feitos em um histórico e traz a tabela de referência.
 - [Como executar](#como-executar)
 - [Como usar o app](#como-usar-o-app)
 - [Problemas comuns](#problemas-comuns)
+- [Banco de dados (Firebase)](#banco-de-dados-firebase)
 - [Regras do cálculo](#regras-do-cálculo)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Organização do código](#organização-do-código)
 
 ## Telas
 
-Todas as telas são acessadas pelo menu flutuante, que abre pelo ícone ☰ no cabeçalho.
+Todas as telas principais são acessadas pelo menu flutuante, que abre pelo ícone ☰ no cabeçalho.
 
-| Tela | O que faz | Componentes principais |
+| Tela | O que faz | Usa o banco? |
 | --- | --- | --- |
-| **Início** | Boas-vindas, explicação de como abrir o menu e atalhos para as outras telas | Banner, dica, botão "Abrir menu", cartões de acesso rápido |
-| **Calcular IMC** | Recebe peso e altura, calcula o IMC e mostra a classificação | Campos de texto numéricos, botões "Calcular" e "Limpar", mensagem de erro, cartão de resultado |
-| **Histórico** | Lista os cálculos feitos enquanto o app está aberto | Lista com data e hora, botão para apagar um item, botão "Limpar histórico", tela vazia com atalho |
-| **Tabela de IMC** | Mostra as faixas de classificação da OMS e a fórmula | Tabela colorida por faixa, quadro com a fórmula e um exemplo |
-| **Integrantes** | Mostra os integrantes do grupo | Lista com as iniciais de cada integrante |
+| **Início** | Boas-vindas, explicação de como abrir o menu e atalhos para as outras telas | Não |
+| **Calcular IMC** | Calculadora rápida: recebe peso e altura e mostra o IMC e a classificação | Não |
+| **Alunos** | Lista os alunos cadastrados, com busca pelo nome e o último IMC de cada um | Sim (lê) |
+| ↳ **Novo aluno / Editar aluno** | Cadastro com nome, data de nascimento, altura padrão e consentimento | Sim (grava) |
+| ↳ **Aluno** | Abas **Medições** (lista, editar, apagar) e **Evolução** (gráfico de peso e resumo) | Sim (lê e apaga) |
+| ↳ **Nova medição / Editar medição** | Data, peso e altura, com prévia do IMC antes de salvar | Sim (grava) |
+| **Comparar alunos** | Marca dois ou mais alunos e compara a evolução de cada um | Sim (lê) |
+| **Dados e backup** | Exporta todos os dados num arquivo JSON e explica onde os dados ficam | Sim (lê) |
+| **Tabela de IMC** | Faixas de classificação da OMS e a fórmula | Não |
+| **Integrantes** | Mostra os integrantes do grupo | Não |
 
+As telas marcadas com ↳ abrem a partir da tela Alunos (navegação em pilha, com botão de voltar).
 O menu também mostra, no rodapé, os nomes dos integrantes.
 
 ### Usabilidade
 
 - Os campos aceitam vírgula ou ponto como separador decimal (`70,5` ou `70.5`).
-- A altura pode ser digitada em metros (`1,75`) ou em centímetros (`175`).
+- Na calculadora, a altura pode ser digitada em metros (`1,75`) ou em centímetros (`175`).
 - Valores inválidos ou fora do intervalo mostram uma mensagem explicando o que corrigir.
 - O resultado aparece com a cor da faixa (azul, verde, amarelo, laranja ou vermelho).
-- Antes de apagar algo do histórico, o app pede confirmação.
+- Antes de apagar uma medição ou excluir um aluno, o app pede confirmação.
+- Se já existir uma medição no mesmo dia, o app pergunta se deve substituir.
+- Enquanto busca os dados no Firebase, o app mostra um indicador de carregamento; sem
+  internet, mostra uma mensagem e um botão "Tentar de novo".
 - O teclado fecha sozinho ao calcular e ao abrir o menu.
 - Os botões têm descrição para leitores de tela (VoiceOver e TalkBack), em português.
 
@@ -61,9 +72,10 @@ O menu também mostra, no rodapé, os nomes dos integrantes.
 | react-native-gesture-handler e react-native-reanimated | — | Gestos e animação do menu |
 | react-native-safe-area-context | — | Respeitar o entalhe e as bordas da tela |
 | @expo/vector-icons | — | Ícones (Ionicons) |
+| Firebase (Firestore) | 13 | Banco de dados na nuvem, onde ficam os alunos e as medições |
+| expo-file-system e expo-sharing | — | Gerar e compartilhar o arquivo de backup |
 
-O app não usa servidor (backend) nem APIs externas. O histórico fica na memória do app
-enquanto ele está aberto.
+O app não tem servidor próprio: ele conversa direto com o Firebase pela internet.
 
 ## Pré-requisitos
 
@@ -97,13 +109,17 @@ enquanto ele está aberto.
    ```bash
    npm install
    ```
+4. Configure o Firebase: copie o arquivo `src/firebaseConfig.js` do repositório
+   **FireBaseIMCKEY** para a pasta `src/` deste projeto. Também dá para usar
+   `src/firebaseConfig.example.js` como modelo e colar as chaves de outro projeto Firebase.
+   Esse arquivo não vai para o GitHub (está no `.gitignore`).
 
 > No final, o `npm install` pode mostrar avisos de vulnerabilidades (`npm audit`). Isso é
 > normal em projetos Expo e não impede o app de rodar. **Não** rode `npm audit fix --force`:
 > ele troca a versão do Expo e do React Native e quebra o projeto.
 
 **Se o projeto foi recebido como arquivo compactado (.zip):** extraia a pasta, abra o
-terminal dentro dela e rode `npm install`.
+terminal dentro dela, rode `npm install` e faça o passo 4 acima.
 
 **Se foram recebidos apenas `package.json`, `App.js` e a pasta `src`:**
 
@@ -173,15 +189,18 @@ Com um emulador aberto pelo Android Studio, aperte **`a`** no terminal.
 1. Na tela **Início**, toque no ícone **☰** (canto superior esquerdo) ou no botão
    **"Abrir menu"**. No iPhone, também dá para arrastar o dedo a partir da borda
    esquerda da tela.
-2. No menu, escolha **Calcular IMC**.
-3. Digite o peso em kg (ex.: `70,5`) e a altura em metros (ex.: `1,75`) ou em
-   centímetros (ex.: `175`).
-4. Toque em **Calcular**. O resultado aparece com o valor do IMC e a classificação.
-5. Toque em **Ver histórico** para ver os cálculos feitos, ou em **Ver tabela de IMC**
-   para ver as faixas de classificação.
-6. No **Histórico**, toque na lixeira para apagar um cálculo ou em
-   **Limpar histórico** para apagar todos.
-7. Em **Integrantes**, veja quem desenvolveu o app.
+2. Para um cálculo rápido, abra **Calcular IMC**, digite o peso e a altura e toque em
+   **Calcular**.
+3. Para acompanhar alguém, abra **Alunos** → **Novo aluno**. Preencha nome, data de
+   nascimento (o aluno precisa ter 18 anos ou mais) e, se quiser, a altura padrão. Marque o
+   consentimento e toque em **Salvar**.
+4. Na tela do aluno, toque em **Nova medição**, confira a data, digite o peso e salve.
+   A prévia mostra o IMC antes de salvar.
+5. Com duas medições ou mais, a aba **Evolução** mostra o gráfico de peso e o resumo
+   (variação em kg e em %, período e variação do IMC).
+6. Em **Comparar alunos**, marque dois ou mais alunos para ver a evolução lado a lado.
+7. Em **Dados e backup**, exporte uma cópia de todos os dados em JSON.
+8. Em **Integrantes**, veja quem desenvolveu o app.
 
 ## Problemas comuns
 
@@ -192,8 +211,56 @@ Com um emulador aberto pelo Android Studio, aperte **`a`** no terminal.
 | O QR Code aponta para `127.0.0.1` | O computador está numa rede sem IPv4 (comum no roteador do celular no 4G). Use uma rede Wi-Fi comum ou o modo túnel. |
 | "Project is incompatible with this version of Expo Go" | O projeto usa o SDK 57. Se o Expo Go for mais antigo, atualize-o pela loja. Se a loja já tiver um Expo Go mais novo (SDK 58 ou superior), ele não abre mais este projeto: no Android, instale o Expo Go do SDK 57 pelo site <https://expo.dev/go>; no iPhone, abra pelo navegador (tecla `w`) ou pelo simulador no Mac (tecla `i`), que instala a versão certa do Expo Go sozinho. |
 | "Port 8081 is running this app in another window" ou "Port 8081 is being used by another process" | A porta 8081 já está em uso, normalmente por outro `npx expo start` aberto. Feche o outro terminal ou responda `Y` quando o Expo perguntar se pode usar outra porta. |
+| "Não foi possível carregar os alunos. Verifique a internet." | O app precisa de internet para falar com o Firebase. Confira a conexão do celular. Se a internet estiver boa, confira se o arquivo `src/firebaseConfig.js` existe e se as **regras do Firestore** ainda permitem acesso: no console do Firebase, abra **Firestore Database → Regras**. Banco criado em "modo de teste" para de aceitar acessos 30 dias depois da criação. |
+| Erro "Unable to resolve ../firebaseConfig" | Falta o arquivo de configuração do Firebase. Faça o passo 4 da [Instalação](#instalação). |
 | O app não atualiza ou mostra erros estranhos | Pare o servidor (`Ctrl + C`) e inicie limpando o cache: `npx expo start -c`. |
 | Erro ou avisos `EBADENGINE` ao rodar `npm install` | Confira a versão do Node com `node -v`. Ela precisa ser 20.19.4 ou mais nova da linha 20, 22.13 ou mais nova da linha 22, ou 24.3 ou mais nova. Na dúvida, instale a versão LTS atual em <https://nodejs.org>. |
+
+## Banco de dados (Firebase)
+
+Os dados ficam no **Firebase Firestore**, um banco de dados na nuvem do Google. Por isso
+os alunos aparecem iguais em qualquer celular (ou navegador) que use o app, e o app precisa
+de internet para salvar e carregar.
+
+O Firestore guarda **documentos** dentro de **coleções**. A organização é esta:
+
+```
+alunos                      (coleção)
+└── {id do aluno}           (documento, id criado pelo Firebase)
+    ├── nome, dataNascimento, alturaPadrao, consentimentoEm, criadoEm
+    └── medicoes            (subcoleção do aluno)
+        └── {AAAA-MM-DD}    (documento: o id é a própria data)
+            └── data, peso, altura, criadoEm
+```
+
+| Campo | Exemplo | Observação |
+| --- | --- | --- |
+| `nome` | `"Ana Souza"` | |
+| `dataNascimento` | `"2000-05-10"` | Formato AAAA-MM-DD |
+| `alturaPadrao` | `1.65` ou `null` | Em metros; opcional |
+| `consentimentoEm` | `"2026-11-18T21:15:55.632Z"` | Quando o aluno autorizou o registro |
+| `criadoEm` | `"2026-11-18T21:15:55.632Z"` | Quando o cadastro foi feito |
+| `peso` | `63.2` | Em kg |
+| `altura` | `1.65` | Em metros |
+
+Decisões importantes:
+
+- **O id da medição é a data.** Assim cada aluno tem no máximo uma medição por dia: salvar
+  de novo no mesmo dia substitui a anterior (o app pergunta antes).
+- **O IMC não é salvo**, só o peso e a altura. O app calcula o IMC e a classificação na hora
+  de mostrar, com a mesma regra da calculadora.
+- **Excluir um aluno apaga as medições dele juntas.** O Firestore não apaga subcoleções
+  sozinho, então o app apaga tudo de uma vez num lote (`writeBatch`).
+- As validações (peso, altura, data, idade) são feitas no app antes de salvar.
+
+O código do banco fica em `src/data/`:
+
+| Arquivo | Funções |
+| --- | --- |
+| `firebase.js` | Conecta ao projeto (`initializeApp` e `getFirestore`) |
+| `alunos.js` | `listarAlunos`, `buscarAluno`, `salvarAluno`, `removerAluno` |
+| `medicoes.js` | `listarMedicoes`, `buscarMedicao`, `salvarMedicao`, `atualizarMedicao`, `removerMedicao` |
+| `backup.js` | `montarBackup` e `exportarBackup` (arquivo JSON) |
 
 ## Regras do cálculo
 
@@ -202,6 +269,7 @@ Com um emulador aberto pelo Android Studio, aperte **`a`** no terminal.
   tabela da OMS.
 - **Valores aceitos:** peso entre **2 e 500 kg**; altura entre **0,40 e 2,60 m**
   (ou 40 a 260 cm). Alturas maiores que 3 são consideradas em centímetros.
+- **Alunos:** somente com 18 anos ou mais, porque a tabela da OMS abaixo vale para adultos.
 - **Classificação (OMS):**
 
 | IMC | Classificação |
@@ -225,21 +293,36 @@ MenuFlutuante/
 ├── package.json                    # Dependências e scripts
 ├── assets/                         # Ícones e imagens do app
 └── src/
+    ├── firebaseConfig.js           # Chaves do Firebase (fora do GitHub; vem do FireBaseIMCKEY)
+    ├── firebaseConfig.example.js   # Modelo do arquivo acima
     ├── navigation/
-    │   └── DrawerNavigator.js      # Menu flutuante com as 5 telas
+    │   ├── DrawerNavigator.js      # Menu flutuante com as 7 telas principais
+    │   └── AlunosNavigator.js      # Pilha de telas dos alunos (lista, aluno, cadastro, medição)
     ├── components/
     │   ├── CustomDrawerContent.js  # Conteúdo do menu: cabeçalho, itens e rodapé
-    │   └── Botao.js                # Botão reutilizável (preenchido ou contorno)
+    │   ├── Botao.js                # Botão reutilizável (preenchido ou contorno)
+    │   └── GraficoPeso.js          # Gráfico de barras do peso
     ├── screens/
     │   ├── InicioScreen.js         # Tela inicial
-    │   ├── CalcularImcScreen.js    # Formulário e resultado do IMC
-    │   ├── HistoricoScreen.js      # Lista de cálculos
+    │   ├── CalcularImcScreen.js    # Calculadora de IMC
+    │   ├── AlunosScreen.js         # Lista de alunos
+    │   ├── CadastroAlunoScreen.js  # Novo aluno / editar aluno
+    │   ├── AlunoDetalheScreen.js   # Medições e evolução de um aluno
+    │   ├── NovaMedicaoScreen.js    # Nova medição / editar medição
+    │   ├── CompararAlunosScreen.js # Comparação entre alunos
+    │   ├── DadosScreen.js          # Backup e informações sobre os dados
     │   ├── TabelaImcScreen.js      # Tabela de classificação
     │   └── IntegrantesScreen.js    # Integrantes do grupo
-    ├── context/
-    │   └── HistoricoContext.js     # Histórico compartilhado entre as telas
+    ├── data/
+    │   ├── firebase.js             # Conexão com o Firebase
+    │   ├── alunos.js               # Operações com alunos no Firestore
+    │   ├── medicoes.js             # Operações com medições no Firestore
+    │   └── backup.js               # Exportação dos dados em JSON
     ├── utils/
-    │   └── imc.js                  # Cálculo, validação e classificação do IMC
+    │   ├── imc.js                  # Cálculo, validação e classificação do IMC
+    │   ├── evolucao.js             # Cálculo da evolução (variação de peso e IMC)
+    │   ├── datas.js                # Conversão e formatação de datas
+    │   └── confirmar.js            # Caixa de confirmação (celular e navegador)
     ├── constants/
     │   └── grupo.js                # Nomes dos integrantes
     └── theme/
@@ -251,9 +334,8 @@ MenuFlutuante/
 ### Navegação
 
 - `App.js` envolve o app com o `GestureHandlerRootView` (gestos do menu), o
-  `SafeAreaProvider` (bordas da tela), o `HistoricoProvider` (histórico) e o
-  `NavigationContainer` (navegação).
-- `DrawerNavigator.js` cria o menu com `createDrawerNavigator()` e registra as 5 telas
+  `SafeAreaProvider` (bordas da tela) e o `NavigationContainer` (navegação).
+- `DrawerNavigator.js` cria o menu com `createDrawerNavigator()` e registra as 7 telas
   com `Drawer.Screen`. Cada tela tem um título e um ícone que fica preenchido quando
   a tela está aberta.
 - O menu usa `drawerType: 'front'`, ou seja, desliza **por cima** da tela, como um
@@ -263,12 +345,21 @@ MenuFlutuante/
 - As telas também navegam entre si com `navigation.navigate('NomeDaTela')`, por
   exemplo nos atalhos da tela Início e nos botões do resultado.
 
-### Histórico compartilhado
+### Telas dos alunos (pilha dentro do menu)
 
-- `HistoricoContext.js` usa a **Context API** do React para guardar a lista de cálculos.
-- A tela **Calcular IMC** adiciona um registro a cada cálculo (`adicionarRegistro`).
-- A tela **Histórico** lê a mesma lista e permite apagar um registro
-  (`removerRegistro`) ou todos (`limparHistorico`).
+- O item **Alunos** do menu abre o `AlunosNavigator.js`, uma navegação em pilha
+  (`createNativeStackNavigator`) com 4 telas: lista, aluno, cadastro e medição.
+- Assim dá para entrar num aluno, abrir uma medição e voltar com o botão de voltar, sem
+  sair do menu flutuante.
+
+### Banco de dados
+
+- As telas não falam com o Firebase diretamente: elas chamam as funções de `src/data/`
+  (por exemplo `listarAlunos()` ou `salvarMedicao(alunoId, medicao)`).
+- As telas recarregam os dados sempre que voltam a aparecer (`useFocusEffect`), então a
+  lista já mostra o aluno ou a medição que acabou de ser salva.
+- Cada chamada ao banco tem tratamento de erro (`try/catch`): se a internet cair, a tela
+  mostra uma mensagem em vez de travar.
 
 ### Cálculo do IMC
 

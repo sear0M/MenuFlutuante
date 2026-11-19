@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import Botao from '../components/Botao';
 import { listarAlunos } from '../data/alunos';
@@ -11,15 +10,22 @@ import { formatarNumero } from '../utils/imc';
 import { formatarVariacao } from '../utils/evolucao';
 
 export default function AlunosScreen({ navigation }) {
-  const db = useSQLiteContext();
   const [alunos, setAlunos] = useState([]);
   const [busca, setBusca] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      listarAlunos(db).then(setAlunos);
-    }, [db])
-  );
+  const carregar = useCallback(() => {
+    listarAlunos()
+      .then((lista) => {
+        setAlunos(lista);
+        setErro('');
+      })
+      .catch(() => setErro('Não foi possível carregar os alunos. Verifique a internet.'))
+      .finally(() => setCarregando(false));
+  }, []);
+
+  useFocusEffect(carregar);
 
   const termo = busca.trim().toLowerCase();
   const filtrados = alunos.filter((aluno) => aluno.nome.toLowerCase().includes(termo));
@@ -34,6 +40,23 @@ export default function AlunosScreen({ navigation }) {
     }
     const variacao = formatarVariacao(ultima.peso - primeira.peso);
     return `IMC ${formatarNumero(ultima.imc, 1)} · ${variacao} kg desde a primeira medição`;
+  }
+
+  if (carregando) {
+    return (
+      <View style={[styles.tela, styles.vazio]}>
+        <ActivityIndicator size="large" color={CORES.primaria} />
+      </View>
+    );
+  }
+
+  if (erro) {
+    return (
+      <View style={[styles.tela, styles.vazio]}>
+        <Text style={styles.vazioTexto}>{erro}</Text>
+        <Botao titulo="Tentar de novo" icone="refresh" onPress={carregar} style={styles.vazioBotao} />
+      </View>
+    );
   }
 
   if (alunos.length === 0) {

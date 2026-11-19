@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import Botao from '../components/Botao';
 import { exportarBackup } from '../data/backup';
 import { CORES } from '../theme/cores';
 
 export default function DadosScreen() {
-  const db = useSQLiteContext();
   const [exportando, setExportando] = useState(false);
   const [mensagem, setMensagem] = useState('');
 
@@ -16,7 +14,7 @@ export default function DadosScreen() {
     setExportando(true);
     setMensagem('');
     try {
-      await exportarBackup(db);
+      await exportarBackup();
       setMensagem('Backup gerado com sucesso.');
     } catch (e) {
       setMensagem('Não foi possível gerar o backup. Tente novamente.');
@@ -45,8 +43,9 @@ export default function DadosScreen() {
 
       <Text style={styles.titulo}>Sobre os dados</Text>
       <Text style={styles.texto}>
-        Os dados ficam somente no aparelho. Não há sincronização nem cópia em servidor. Se o app
-        for desinstalado ou o aparelho trocado sem backup, os dados são perdidos.
+        Os dados ficam salvos no Firebase, um banco de dados na nuvem do Google. Por isso aparecem
+        em qualquer aparelho que use o app, e o app precisa de internet para salvar e carregar. O
+        backup gera uma cópia em arquivo, para guardar fora do Firebase.
       </Text>
       <Text style={styles.texto}>
         Cadastre alunos somente com autorização. O app não substitui avaliação médica ou

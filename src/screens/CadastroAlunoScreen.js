@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import Botao from '../components/Botao';
 import { buscarAluno, salvarAluno } from '../data/alunos';
@@ -10,7 +9,6 @@ import { formatarDataBr, hojeIso, idadeEm, mascararData, textoParaIso } from '..
 import { converterNumero, formatarNumero } from '../utils/imc';
 
 export default function CadastroAlunoScreen({ navigation, route }) {
-  const db = useSQLiteContext();
   const alunoId = route.params?.alunoId;
   const editando = Boolean(alunoId);
 
@@ -19,18 +17,24 @@ export default function CadastroAlunoScreen({ navigation, route }) {
   const [altura, setAltura] = useState('');
   const [consentimento, setConsentimento] = useState(false);
   const [erro, setErro] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  // Trava imediata contra toque duplo: o estado do React só muda no próximo desenho da tela.
+  const ocupado = useRef(false);
 
   useEffect(() => {
     if (!editando) return;
-    buscarAluno(db, alunoId).then((aluno) => {
-      if (!aluno) return;
-      setNome(aluno.nome);
-      setNascimento(formatarDataBr(aluno.dataNascimento));
-      if (aluno.alturaPadrao) setAltura(formatarNumero(aluno.alturaPadrao, 2));
-    });
-  }, [db, alunoId, editando]);
+    buscarAluno(alunoId)
+      .then((aluno) => {
+        if (!aluno) return;
+        setNome(aluno.nome);
+        setNascimento(formatarDataBr(aluno.dataNascimento));
+        if (aluno.alturaPadrao) setAltura(formatarNumero(aluno.alturaPadrao, 2));
+      })
+      .catch(() => setErro('Não foi possível carregar o aluno. Verifique a internet.'));
+  }, [alunoId, editando]);
 
   async function salvar() {
+    if (ocupado.current) return;
     setErro('');
 
     if (nome.trim().length < 2) {
@@ -66,12 +70,22 @@ export default function CadastroAlunoScreen({ navigation, route }) {
       return;
     }
 
-    const novoId = await salvarAluno(db, {
-      id: alunoId,
-      nome: nome.trim(),
-      dataNascimento: dataIso,
-      alturaPadrao,
-    });
+    ocupado.current = true;
+    setSalvando(true);
+    let novoId;
+    try {
+      novoId = await salvarAluno({
+        id: alunoId,
+        nome: nome.trim(),
+        dataNascimento: dataIso,
+        alturaPadrao,
+      });
+    } catch (e) {
+      ocupado.current = false;
+      setSalvando(false);
+      setErro('Não foi possível salvar o aluno. Verifique a internet e tente de novo.');
+      return;
+    }
 
     if (editando) {
       navigation.goBack();
@@ -139,7 +153,12 @@ export default function CadastroAlunoScreen({ navigation, route }) {
 
         {erro ? <Text style={styles.erro}>{erro}</Text> : null}
 
-        <Botao titulo="Salvar" icone="save-outline" onPress={salvar} style={styles.botao} />
+        <Botao
+          titulo={salvando ? 'Salvando...' : 'Salvar'}
+          icone="save-outline"
+          onPress={salvar}
+          style={styles.botao}
+        />
       </View>
     </ScrollView>
   );

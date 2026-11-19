@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import { listarAlunos } from '../data/alunos';
 import { CORES } from '../theme/cores';
@@ -10,14 +9,21 @@ import { formatarVariacao, calcularEvolucao } from '../utils/evolucao';
 import { formatarNumero } from '../utils/imc';
 
 export default function CompararAlunosScreen() {
-  const db = useSQLiteContext();
   const [alunos, setAlunos] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
 
   useFocusEffect(
     useCallback(() => {
-      listarAlunos(db).then(setAlunos);
-    }, [db])
+      listarAlunos()
+        .then((lista) => {
+          setAlunos(lista);
+          setErro('');
+        })
+        .catch(() => setErro('Não foi possível carregar os alunos. Verifique a internet.'))
+        .finally(() => setCarregando(false));
+    }, [])
   );
 
   function alternar(id) {
@@ -37,7 +43,9 @@ export default function CompararAlunosScreen() {
         com o próprio histórico.
       </Text>
 
-      {alunos.length === 0 ? (
+      {carregando ? <Text style={styles.vazio}>Carregando...</Text> : null}
+      {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+      {!carregando && !erro && alunos.length === 0 ? (
         <Text style={styles.vazio}>Nenhum aluno cadastrado ainda.</Text>
       ) : null}
 
@@ -132,6 +140,11 @@ const styles = StyleSheet.create({
   },
   vazio: {
     color: CORES.textoSecundario,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  erro: {
+    color: CORES.erro,
     textAlign: 'center',
     marginTop: 12,
   },

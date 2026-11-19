@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useSQLiteContext } from 'expo-sqlite';
 
 import Botao from '../components/Botao';
 import { buscarAluno } from '../data/alunos';
-import { atualizarMedicao, buscarMedicao, buscarMedicaoDoDia, salvarMedicao } from '../data/medicoes';
+import { atualizarMedicao, buscarMedicao, salvarMedicao } from '../data/medicoes';
 import { CORES } from '../theme/cores';
 import { confirmar } from '../utils/confirmar';
 import { formatarDataBr, hojeIso, mascararData, textoParaIso } from '../utils/datas';
 import { avaliarImc, formatarNumero } from '../utils/imc';
 
 export default function NovaMedicaoScreen({ navigation, route }) {
-  const db = useSQLiteContext();
   const alunoId = route.params.alunoId;
   const medicaoId = route.params.medicaoId;
   const editando = Boolean(medicaoId);
@@ -21,11 +19,13 @@ export default function NovaMedicaoScreen({ navigation, route }) {
   const [altura, setAltura] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  // Trava imediata contra toque duplo: o estado do React só muda no próximo desenho da tela.
+  const ocupado = useRef(false);
 
   useEffect(() => {
     async function carregar() {
       if (editando) {
-        const medicao = await buscarMedicao(db, medicaoId);
+        const medicao = await buscarMedicao(alunoId, medicaoId);
         if (medicao) {
           setData(formatarDataBr(medicao.data));
           setPeso(formatarNumero(medicao.peso, 1));
@@ -34,7 +34,7 @@ export default function NovaMedicaoScreen({ navigation, route }) {
         return;
       }
 
-      const aluno = await buscarAluno(db, alunoId);
+      const aluno = await buscarAluno(alunoId);
       if (!aluno) return;
       if (aluno.alturaPadrao) {
         setAltura(formatarNumero(aluno.alturaPadrao, 2));
@@ -44,56 +44,81 @@ export default function NovaMedicaoScreen({ navigation, route }) {
       }
     }
 
-    carregar();
-  }, [db, alunoId, medicaoId, editando]);
+    carregar().catch(() => setErro('Não foi possível carregar os dados. Verifique a internet.'));
+  }, [alunoId, medicaoId, editando]);
 
   const previa = peso && altura ? avaliarImc(peso, altura) : null;
 
   async function gravar(dataIso, resultado) {
+    if (ocupado.current) return;
+    ocupado.current = true;
     setSalvando(true);
-    if (editando) {
-      await atualizarMedicao(db, medicaoId, { data: dataIso, peso: resultado.peso, altura: resultado.altura });
-    } else {
-      await salvarMedicao(db, alunoId, { data: dataIso, peso: resultado.peso, altura: resultado.altura });
+    const medicao = { data: dataIso, peso: resultado.peso, altura: resultado.altura };
+    try {
+      if (editando) {
+        await atualizarMedicao(alunoId, medicaoId, medicao);
+      } else {
+        await salvarMedicao(alunoId, medicao);
+      }
+      if (navigation.isFocused()) navigation.goBack();
+    } catch (e) {
+      ocupado.current = false;
+      setSalvando(false);
+      setErro('Não foi possível salvar a medição. Verifique a internet e tente de novo.');
     }
-    navigation.goBack();
   }
 
   async function salvar() {
+    if (ocupado.current) return;
+    ocupado.current = true;
+    const pronto = await conferir();
+    ocupado.current = false;
+    if (pronto) await gravar(pronto.dataIso, pronto.resultado);
+  }
+
+  // Valida o formulário e confere no banco se já existe medição no dia.
+  // Devolve os dados prontos para gravar, ou null quando mostrou um erro ou uma pergunta.
+  async function conferir() {
     Keyboard.dismiss();
     setErro('');
 
     const dataIso = textoParaIso(data);
     if (!dataIso) {
       setErro('Informe a data no formato DD/MM/AAAA.');
-      return;
+      return null;
     }
     if (dataIso > hojeIso()) {
       setErro('A data da medição não pode estar no futuro.');
-      return;
+      return null;
     }
 
     const avaliacao = avaliarImc(peso, altura);
     if (avaliacao.erro) {
       setErro(avaliacao.erro);
-      return;
+      return null;
     }
 
-    const outra = await buscarMedicaoDoDia(db, alunoId, dataIso);
+    let outra;
+    try {
+      outra = await buscarMedicao(alunoId, dataIso);
+    } catch (e) {
+      setErro('Não foi possível conferir as medições. Verifique a internet e tente de novo.');
+      return null;
+    }
     if (outra && (!editando || outra.id !== medicaoId)) {
       if (editando) {
         setErro('Já existe uma medição nesse dia. Escolha outra data.');
-        return;
+        return null;
       }
       confirmar(
         'Já existe uma medição nesse dia. Deseja substituí-la?',
         () => gravar(dataIso, avaliacao.resultado),
         'Substituir'
       );
-      return;
+      return null;
     }
 
-    await gravar(dataIso, avaliacao.resultado);
+    return { dataIso, resultado: avaliacao.resultado };
   }
 
   return (
