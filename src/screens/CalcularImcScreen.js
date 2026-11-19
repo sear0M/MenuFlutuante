@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 
 import Botao from '../components/Botao';
+import SeletorSexo from '../components/SeletorSexo';
 import { CORES } from '../theme/cores';
+import { estimarGordura, rotuloSexo } from '../utils/gordura';
 import { avaliarImc, formatarNumero } from '../utils/imc';
 
 export default function CalcularImcScreen({ navigation }) {
@@ -19,6 +21,8 @@ export default function CalcularImcScreen({ navigation }) {
   const [altura, setAltura] = useState('');
   const [resultado, setResultado] = useState(null);
   const [erro, setErro] = useState('');
+  const [sexo, setSexo] = useState(null);
+  const [idade, setIdade] = useState('');
   const alturaRef = useRef(null);
 
   function calcular() {
@@ -31,13 +35,27 @@ export default function CalcularImcScreen({ navigation }) {
       return;
     }
 
+    // Sexo e idade são opcionais: servem só para estimar a gordura corporal.
+    let gordura = null;
+    if (idade.trim() !== '') {
+      const anos = Number(idade);
+      if (!Number.isInteger(anos) || anos < 18 || anos > 120) {
+        setErro('A idade deve ser um número inteiro entre 18 e 120 (ou deixe em branco).');
+        setResultado(null);
+        return;
+      }
+      gordura = estimarGordura(avaliacao.resultado.imc, anos, sexo);
+    }
+
     setErro('');
-    setResultado(avaliacao.resultado);
+    setResultado({ ...avaliacao.resultado, gordura, sexo, idade: idade.trim() });
   }
 
   function limpar() {
     setPeso('');
     setAltura('');
+    setSexo(null);
+    setIdade('');
     setResultado(null);
     setErro('');
   }
@@ -81,6 +99,22 @@ export default function CalcularImcScreen({ navigation }) {
             accessibilityLabel="Altura em metros"
           />
 
+          <Text style={styles.rotulo}>Sexo e idade — opcional</Text>
+          <SeletorSexo valor={sexo} onChange={setSexo} style={styles.sexo} />
+          <TextInput
+            style={styles.campo}
+            value={idade}
+            onChangeText={setIdade}
+            placeholder="Idade em anos (ex.: 30)"
+            placeholderTextColor={CORES.textoSecundario}
+            keyboardType="number-pad"
+            maxLength={3}
+            accessibilityLabel="Idade em anos"
+          />
+          <Text style={styles.ajuda}>
+            O IMC é igual para homens e mulheres. Sexo e idade servem para estimar a gordura corporal.
+          </Text>
+
           {erro ? <Text style={styles.erro}>{erro}</Text> : null}
 
           <Botao titulo="Calcular" icone="calculator-outline" onPress={calcular} style={styles.botao} />
@@ -99,6 +133,21 @@ export default function CalcularImcScreen({ navigation }) {
             <Text style={styles.resultadoDetalhe}>
               Peso {formatarNumero(resultado.peso, 1)} kg · Altura {formatarNumero(resultado.altura, 2)} m
             </Text>
+
+            {resultado.gordura ? (
+              <View style={styles.gordura}>
+                <Text style={styles.gorduraTexto}>
+                  Gordura estimada {formatarNumero(resultado.gordura.percentual, 1)}% ·{' '}
+                  <Text style={{ color: resultado.gordura.corTexto }}>{resultado.gordura.classificacao}</Text>
+                </Text>
+                <Text style={styles.resultadoDetalhe}>
+                  Faixa saudável ({rotuloSexo(resultado.sexo).toLowerCase()}, {resultado.idade} anos):{' '}
+                  {resultado.gordura.faixaSaudavel}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.dica}>Informe sexo e idade para ver também a gordura corporal estimada.</Text>
+            )}
 
             <View style={styles.acoes}>
               <Botao
@@ -191,6 +240,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: CORES.textoSecundario,
     marginTop: 8,
+  },
+  sexo: {
+    marginBottom: 12,
+  },
+  ajuda: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  gordura: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: CORES.borda,
+  },
+  gorduraTexto: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: CORES.texto,
+  },
+  dica: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
+    textAlign: 'center',
+    marginTop: 10,
   },
   acoes: {
     alignSelf: 'stretch',

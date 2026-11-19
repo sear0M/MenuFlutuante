@@ -35,11 +35,11 @@ Todas as telas principais são acessadas pelo menu flutuante, que abre pelo íco
 | Tela | O que faz | Usa o banco? |
 | --- | --- | --- |
 | **Início** | Boas-vindas, explicação de como abrir o menu e atalhos para as outras telas | Não |
-| **Calcular IMC** | Calculadora rápida: recebe peso e altura e mostra o IMC e a classificação | Não |
+| **Calcular IMC** | Calculadora rápida: recebe peso e altura e mostra o IMC e a classificação. Com sexo e idade (opcionais), mostra também a gordura corporal estimada | Não |
 | **Alunos** | Lista os alunos cadastrados, com busca pelo nome e o último IMC de cada um | Sim (lê) |
-| ↳ **Novo aluno / Editar aluno** | Cadastro com nome, data de nascimento, altura padrão e consentimento | Sim (grava) |
-| ↳ **Aluno** | Abas **Medições** (lista, editar, apagar) e **Evolução** (gráfico de peso e resumo) | Sim (lê e apaga) |
-| ↳ **Nova medição / Editar medição** | Data, peso e altura, com prévia do IMC antes de salvar | Sim (grava) |
+| ↳ **Novo aluno / Editar aluno** | Cadastro com nome, data de nascimento, sexo, altura padrão e consentimento | Sim (grava) |
+| ↳ **Aluno** | Abas **Medições** (lista com IMC e gordura estimada, editar, apagar) e **Evolução** (gráfico de peso e resumo) | Sim (lê e apaga) |
+| ↳ **Nova medição / Editar medição** | Data, peso e altura, com prévia do IMC e da gordura estimada antes de salvar | Sim (grava) |
 | **Comparar alunos** | Marca dois ou mais alunos e compara a evolução de cada um | Sim (lê) |
 | **Dados e backup** | Exporta todos os dados num arquivo JSON e explica onde os dados ficam | Sim (lê) |
 | **Tabela de IMC** | Faixas de classificação da OMS e a fórmula | Não |
@@ -192,8 +192,8 @@ Com um emulador aberto pelo Android Studio, aperte **`a`** no terminal.
 2. Para um cálculo rápido, abra **Calcular IMC**, digite o peso e a altura e toque em
    **Calcular**.
 3. Para acompanhar alguém, abra **Alunos** → **Novo aluno**. Preencha nome, data de
-   nascimento (o aluno precisa ter 18 anos ou mais) e, se quiser, a altura padrão. Marque o
-   consentimento e toque em **Salvar**.
+   nascimento (o aluno precisa ter 18 anos ou mais), sexo e, se quiser, a altura padrão.
+   Marque o consentimento e toque em **Salvar**.
 4. Na tela do aluno, toque em **Nova medição**, confira a data, digite o peso e salve.
    A prévia mostra o IMC antes de salvar.
 5. Com duas medições ou mais, a aba **Evolução** mostra o gráfico de peso e o resumo
@@ -227,7 +227,7 @@ O Firestore guarda **documentos** dentro de **coleções**. A organização é e
 ```
 alunos                      (coleção)
 └── {id do aluno}           (documento, id criado pelo Firebase)
-    ├── nome, dataNascimento, alturaPadrao, consentimentoEm, criadoEm
+    ├── nome, dataNascimento, sexo, alturaPadrao, consentimentoEm, criadoEm
     └── medicoes            (subcoleção do aluno)
         └── {AAAA-MM-DD}    (documento: o id é a própria data)
             └── data, peso, altura, criadoEm
@@ -237,6 +237,7 @@ alunos                      (coleção)
 | --- | --- | --- |
 | `nome` | `"Ana Souza"` | |
 | `dataNascimento` | `"2000-05-10"` | Formato AAAA-MM-DD |
+| `sexo` | `"feminino"` ou `"masculino"` | Usado para estimar a gordura corporal |
 | `alturaPadrao` | `1.65` ou `null` | Em metros; opcional |
 | `consentimentoEm` | `"2026-11-18T21:15:55.632Z"` | Quando o aluno autorizou o registro |
 | `criadoEm` | `"2026-11-18T21:15:55.632Z"` | Quando o cadastro foi feito |
@@ -247,8 +248,8 @@ Decisões importantes:
 
 - **O id da medição é a data.** Assim cada aluno tem no máximo uma medição por dia: salvar
   de novo no mesmo dia substitui a anterior (o app pergunta antes).
-- **O IMC não é salvo**, só o peso e a altura. O app calcula o IMC e a classificação na hora
-  de mostrar, com a mesma regra da calculadora.
+- **O IMC não é salvo**, só o peso e a altura. O app calcula o IMC, a classificação e a
+  gordura estimada na hora de mostrar.
 - **Excluir um aluno apaga as medições dele juntas.** O Firestore não apaga subcoleções
   sozinho, então o app apaga tudo de uma vez num lote (`writeBatch`).
 - As validações (peso, altura, data, idade) são feitas no app antes de salvar.
@@ -270,6 +271,7 @@ O código do banco fica em `src/data/`:
 - **Valores aceitos:** peso entre **2 e 500 kg**; altura entre **0,40 e 2,60 m**
   (ou 40 a 260 cm). Alturas maiores que 3 são consideradas em centímetros.
 - **Alunos:** somente com 18 anos ou mais, porque a tabela da OMS abaixo vale para adultos.
+- **O IMC é igual para homens e mulheres.** A fórmula e a tabela da OMS não mudam com o sexo.
 - **Classificação (OMS):**
 
 | IMC | Classificação |
@@ -282,6 +284,33 @@ O código do banco fica em `src/data/`:
 | 40,0 ou mais | Obesidade grau III |
 
 Exemplo: 70 kg ÷ (1,75 × 1,75) = **22,9 → Peso normal**.
+
+### Sexo e gordura corporal estimada
+
+O que muda com o sexo é a **gordura corporal**: com o mesmo IMC, a mulher tem, em média, mais
+gordura que o homem. Por isso o app estima o percentual de gordura pela **fórmula de
+Deurenberg (1991)**, que usa o IMC, a idade e o sexo:
+
+```
+% de gordura = 1,2 × IMC + 0,23 × idade − 10,8 × sexo − 5,4
+               (sexo = 1 para homem, 0 para mulher)
+```
+
+Exemplo, IMC 24 e 30 anos: homem **19,5%**, mulher **30,3%**.
+
+A gordura é classificada pelas faixas de Gallagher et al. (2000), que mudam com o sexo e a idade:
+
+| Idade | Sexo | Abaixo do recomendado | Saudável | Acima do recomendado | Obesidade |
+| --- | --- | --- | --- | --- | --- |
+| 18 a 39 | Feminino | menos de 21% | 21% a 32% | 33% a 38% | 39% ou mais |
+| 18 a 39 | Masculino | menos de 8% | 8% a 19% | 20% a 24% | 25% ou mais |
+| 40 a 59 | Feminino | menos de 23% | 23% a 33% | 34% a 39% | 40% ou mais |
+| 40 a 59 | Masculino | menos de 11% | 11% a 21% | 22% a 27% | 28% ou mais |
+| 60 ou mais | Feminino | menos de 24% | 24% a 35% | 36% a 41% | 42% ou mais |
+| 60 ou mais | Masculino | menos de 13% | 13% a 24% | 25% a 29% | 30% ou mais |
+
+A idade usada é a do aluno na data de cada medição. É uma **estimativa**: não substitui
+exames como bioimpedância ou dobras cutâneas. O código fica em `src/utils/gordura.js`.
 
 ## Estrutura do projeto
 
@@ -301,7 +330,8 @@ MenuFlutuante/
     ├── components/
     │   ├── CustomDrawerContent.js  # Conteúdo do menu: cabeçalho, itens e rodapé
     │   ├── Botao.js                # Botão reutilizável (preenchido ou contorno)
-    │   └── GraficoPeso.js          # Gráfico de barras do peso
+    │   ├── GraficoPeso.js          # Gráfico de barras do peso
+    │   └── SeletorSexo.js          # Botões Feminino / Masculino
     ├── screens/
     │   ├── InicioScreen.js         # Tela inicial
     │   ├── CalcularImcScreen.js    # Calculadora de IMC
@@ -321,6 +351,7 @@ MenuFlutuante/
     ├── utils/
     │   ├── imc.js                  # Cálculo, validação e classificação do IMC
     │   ├── evolucao.js             # Cálculo da evolução (variação de peso e IMC)
+    │   ├── gordura.js              # Gordura corporal estimada por sexo e idade
     │   ├── datas.js                # Conversão e formatação de datas
     │   └── confirmar.js            # Caixa de confirmação (celular e navegador)
     ├── constants/

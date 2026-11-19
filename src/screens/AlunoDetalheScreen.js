@@ -8,9 +8,10 @@ import GraficoPeso from '../components/GraficoPeso';
 import { buscarAluno, removerAluno } from '../data/alunos';
 import { removerMedicao } from '../data/medicoes';
 import { CORES } from '../theme/cores';
-import { diasEntre, formatarDataBr, idadeEm } from '../utils/datas';
+import { diasEntre, formatarDataBr, idadeEm, isoParaData } from '../utils/datas';
 import { calcularEvolucao, formatarVariacao } from '../utils/evolucao';
 import { confirmar } from '../utils/confirmar';
+import { estimarGordura, rotuloSexo } from '../utils/gordura';
 import { formatarNumero } from '../utils/imc';
 
 export default function AlunoDetalheScreen({ navigation, route }) {
@@ -58,13 +59,19 @@ export default function AlunoDetalheScreen({ navigation, route }) {
 
   const medicoesDecrescentes = [...aluno.medicoes].reverse();
   const evolucao = calcularEvolucao(aluno.medicoes);
+  // Gordura estimada de cada medição, pelo sexo e pela idade do aluno na data da medição.
+  const gorduraDe = (medicao) =>
+    estimarGordura(medicao.imc, idadeEm(aluno.dataNascimento, isoParaData(medicao.data)), aluno.sexo);
+  const gorduraInicial = aluno.medicoes.length > 0 ? gorduraDe(aluno.medicoes[0]) : null;
+  const gorduraAtual = aluno.medicoes.length > 0 ? gorduraDe(aluno.medicoes[aluno.medicoes.length - 1]) : null;
 
   return (
     <ScrollView style={styles.tela} contentContainerStyle={styles.conteudo}>
       <View style={styles.cabecalho}>
         <Text style={styles.nome}>{aluno.nome}</Text>
         <Text style={styles.info}>
-          {idadeEm(aluno.dataNascimento)} anos · nascimento {formatarDataBr(aluno.dataNascimento)}
+          {idadeEm(aluno.dataNascimento)} anos · {rotuloSexo(aluno.sexo)} · nascimento{' '}
+          {formatarDataBr(aluno.dataNascimento)}
         </Text>
         {aluno.alturaPadrao ? (
           <Text style={styles.info}>Altura padrão {formatarNumero(aluno.alturaPadrao, 2)} m</Text>
@@ -105,7 +112,9 @@ export default function AlunoDetalheScreen({ navigation, route }) {
             <Text style={styles.vazio}>Nenhuma medição ainda. Toque em "Nova medição".</Text>
           ) : null}
 
-          {medicoesDecrescentes.map((medicao) => (
+          {medicoesDecrescentes.map((medicao) => {
+            const gordura = gorduraDe(medicao);
+            return (
             <View key={medicao.id} style={[styles.item, { borderLeftColor: medicao.cor }]}>
               <View style={styles.itemTextos}>
                 <Text style={styles.itemData}>{formatarDataBr(medicao.data)}</Text>
@@ -116,6 +125,12 @@ export default function AlunoDetalheScreen({ navigation, route }) {
                 <Text style={[styles.itemClassificacao, { color: medicao.corTexto }]}>
                   {medicao.classificacao}
                 </Text>
+                {gordura ? (
+                  <Text style={styles.itemGordura}>
+                    Gordura estimada {formatarNumero(gordura.percentual, 1)}% ·{' '}
+                    <Text style={{ color: gordura.corTexto }}>{gordura.classificacao}</Text>
+                  </Text>
+                ) : null}
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -136,7 +151,8 @@ export default function AlunoDetalheScreen({ navigation, route }) {
                 <Ionicons name="trash-outline" size={22} color={CORES.erro} />
               </Pressable>
             </View>
-          ))}
+            );
+          })}
         </View>
       ) : (
         <View>
@@ -176,6 +192,19 @@ export default function AlunoDetalheScreen({ navigation, route }) {
                     ? 'não calculada (a altura mudou entre as medições)'
                     : formatarVariacao(evolucao.deltaImc)}
                 </Text>
+                <Text style={styles.linha}>
+                  Gordura estimada:{' '}
+                  {gorduraAtual
+                    ? `${formatarNumero(gorduraInicial.percentual, 1)}% → ${formatarNumero(gorduraAtual.percentual, 1)}% (${formatarVariacao(gorduraAtual.percentual - gorduraInicial.percentual)} pontos)`
+                    : 'informe o sexo no cadastro do aluno'}
+                </Text>
+                {gorduraAtual ? (
+                  <Text style={styles.linha}>
+                    Situação atual:{' '}
+                    <Text style={{ color: gorduraAtual.corTexto, fontWeight: '600' }}>{gorduraAtual.classificacao}</Text>
+                    {' '}(faixa saudável para o sexo {rotuloSexo(aluno.sexo).toLowerCase()}: {gorduraAtual.faixaSaudavel})
+                  </Text>
+                ) : null}
               </View>
             </View>
           )}
@@ -303,6 +332,11 @@ const styles = StyleSheet.create({
   itemClassificacao: {
     fontSize: 14,
     fontWeight: '600',
+    marginTop: 2,
+  },
+  itemGordura: {
+    fontSize: 13,
+    color: CORES.textoSecundario,
     marginTop: 2,
   },
   icone: {

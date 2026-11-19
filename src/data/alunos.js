@@ -11,6 +11,7 @@ function paraAluno(documento) {
     id: documento.id,
     nome: dados.nome,
     dataNascimento: dados.dataNascimento,
+    sexo: dados.sexo ?? null,
     alturaPadrao: dados.alturaPadrao ?? null,
     consentimentoEm: dados.consentimentoEm,
     criadoEm: dados.criadoEm,
@@ -37,15 +38,16 @@ export async function buscarAluno(id) {
   return aluno;
 }
 
-export async function salvarAluno({ id, nome, dataNascimento, alturaPadrao }) {
+export async function salvarAluno({ id, nome, dataNascimento, sexo, alturaPadrao }) {
   if (id) {
-    await updateDoc(doc(db, 'alunos', id), { nome, dataNascimento, alturaPadrao });
+    await updateDoc(doc(db, 'alunos', id), { nome, dataNascimento, sexo, alturaPadrao });
     return id;
   }
   const agora = new Date().toISOString();
   const novo = await addDoc(alunosRef, {
     nome,
     dataNascimento,
+    sexo,
     alturaPadrao,
     consentimentoEm: agora,
     criadoEm: agora,

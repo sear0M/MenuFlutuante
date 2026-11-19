@@ -6,7 +6,8 @@ import { buscarAluno } from '../data/alunos';
 import { atualizarMedicao, buscarMedicao, salvarMedicao } from '../data/medicoes';
 import { CORES } from '../theme/cores';
 import { confirmar } from '../utils/confirmar';
-import { formatarDataBr, hojeIso, mascararData, textoParaIso } from '../utils/datas';
+import { formatarDataBr, hojeIso, idadeEm, isoParaData, mascararData, textoParaIso } from '../utils/datas';
+import { estimarGordura } from '../utils/gordura';
 import { avaliarImc, formatarNumero } from '../utils/imc';
 
 export default function NovaMedicaoScreen({ navigation, route }) {
@@ -18,12 +19,16 @@ export default function NovaMedicaoScreen({ navigation, route }) {
   const [peso, setPeso] = useState('');
   const [altura, setAltura] = useState('');
   const [erro, setErro] = useState('');
+  const [aluno, setAluno] = useState(null);
   const [salvando, setSalvando] = useState(false);
   // Trava imediata contra toque duplo: o estado do React só muda no próximo desenho da tela.
   const ocupado = useRef(false);
 
   useEffect(() => {
     async function carregar() {
+      const encontrado = await buscarAluno(alunoId);
+      setAluno(encontrado);
+
       if (editando) {
         const medicao = await buscarMedicao(alunoId, medicaoId);
         if (medicao) {
@@ -34,12 +39,11 @@ export default function NovaMedicaoScreen({ navigation, route }) {
         return;
       }
 
-      const aluno = await buscarAluno(alunoId);
-      if (!aluno) return;
-      if (aluno.alturaPadrao) {
-        setAltura(formatarNumero(aluno.alturaPadrao, 2));
-      } else if (aluno.medicoes.length > 0) {
-        const ultima = aluno.medicoes[aluno.medicoes.length - 1];
+      if (!encontrado) return;
+      if (encontrado.alturaPadrao) {
+        setAltura(formatarNumero(encontrado.alturaPadrao, 2));
+      } else if (encontrado.medicoes.length > 0) {
+        const ultima = encontrado.medicoes[encontrado.medicoes.length - 1];
         setAltura(formatarNumero(ultima.altura, 2));
       }
     }
@@ -48,6 +52,12 @@ export default function NovaMedicaoScreen({ navigation, route }) {
   }, [alunoId, medicaoId, editando]);
 
   const previa = peso && altura ? avaliarImc(peso, altura) : null;
+  // A gordura estimada depende do sexo e da idade do aluno na data da medição.
+  const dataDaPrevia = textoParaIso(data) ?? hojeIso();
+  const gorduraPrevia =
+    previa?.resultado && aluno
+      ? estimarGordura(previa.resultado.imc, idadeEm(aluno.dataNascimento, isoParaData(dataDaPrevia)), aluno.sexo)
+      : null;
 
   async function gravar(dataIso, resultado) {
     if (ocupado.current) return;
@@ -164,6 +174,12 @@ export default function NovaMedicaoScreen({ navigation, route }) {
               IMC {formatarNumero(previa.resultado.imc, 1)} ·{' '}
               <Text style={{ color: previa.resultado.corTexto }}>{previa.resultado.classificacao}</Text>
             </Text>
+            {gorduraPrevia ? (
+              <Text style={styles.previaGordura}>
+                Gordura estimada {formatarNumero(gorduraPrevia.percentual, 1)}% ·{' '}
+                <Text style={{ color: gorduraPrevia.corTexto }}>{gorduraPrevia.classificacao}</Text>
+              </Text>
+            ) : null}
           </View>
         ) : null}
 
@@ -224,6 +240,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
     color: CORES.texto,
+  },
+  previaGordura: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: CORES.texto,
+    marginTop: 6,
   },
   erro: {
     color: CORES.erro,

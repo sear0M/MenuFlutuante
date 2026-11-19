@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Ionicons } from '@expo/vector-icons';
 
 import Botao from '../components/Botao';
+import SeletorSexo from '../components/SeletorSexo';
 import { buscarAluno, salvarAluno } from '../data/alunos';
 import { CORES } from '../theme/cores';
 import { formatarDataBr, hojeIso, idadeEm, mascararData, textoParaIso } from '../utils/datas';
@@ -14,6 +15,7 @@ export default function CadastroAlunoScreen({ navigation, route }) {
 
   const [nome, setNome] = useState('');
   const [nascimento, setNascimento] = useState('');
+  const [sexo, setSexo] = useState(null);
   const [altura, setAltura] = useState('');
   const [consentimento, setConsentimento] = useState(false);
   const [erro, setErro] = useState('');
@@ -28,6 +30,7 @@ export default function CadastroAlunoScreen({ navigation, route }) {
         if (!aluno) return;
         setNome(aluno.nome);
         setNascimento(formatarDataBr(aluno.dataNascimento));
+        setSexo(aluno.sexo);
         if (aluno.alturaPadrao) setAltura(formatarNumero(aluno.alturaPadrao, 2));
       })
       .catch(() => setErro('Não foi possível carregar o aluno. Verifique a internet.'));
@@ -56,6 +59,11 @@ export default function CadastroAlunoScreen({ navigation, route }) {
       return;
     }
 
+    if (!sexo) {
+      setErro('Selecione o sexo do aluno.');
+      return;
+    }
+
     let alturaPadrao = null;
     if (altura.trim() !== '') {
       alturaPadrao = converterNumero(altura);
@@ -78,6 +86,7 @@ export default function CadastroAlunoScreen({ navigation, route }) {
         id: alunoId,
         nome: nome.trim(),
         dataNascimento: dataIso,
+        sexo,
         alturaPadrao,
       });
     } catch (e) {
@@ -118,6 +127,12 @@ export default function CadastroAlunoScreen({ navigation, route }) {
           maxLength={10}
           accessibilityLabel="Data de nascimento"
         />
+
+        <Text style={styles.rotulo}>Sexo</Text>
+        <SeletorSexo valor={sexo} onChange={setSexo} style={styles.sexo} />
+        <Text style={styles.ajuda}>
+          O IMC é igual para os dois sexos. O sexo é usado para estimar a gordura corporal.
+        </Text>
 
         <Text style={styles.rotulo}>Altura padrão (m) — opcional</Text>
         <TextInput
@@ -195,6 +210,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: CORES.texto,
     backgroundColor: CORES.fundo,
+    marginBottom: 16,
+  },
+  sexo: {
     marginBottom: 16,
   },
   ajuda: {

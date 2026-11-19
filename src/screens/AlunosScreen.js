@@ -6,6 +6,7 @@ import Botao from '../components/Botao';
 import { listarAlunos } from '../data/alunos';
 import { CORES } from '../theme/cores';
 import { idadeEm } from '../utils/datas';
+import { rotuloSexo } from '../utils/gordura';
 import { formatarNumero } from '../utils/imc';
 import { formatarVariacao } from '../utils/evolucao';
 
@@ -109,7 +110,9 @@ export default function AlunosScreen({ navigation }) {
           >
             <View style={styles.cardTextos}>
               <Text style={styles.cardNome}>{item.nome}</Text>
-              <Text style={styles.cardIdade}>{idadeEm(item.dataNascimento)} anos</Text>
+              <Text style={styles.cardIdade}>
+                {idadeEm(item.dataNascimento)} anos · {rotuloSexo(item.sexo)}
+              </Text>
               <Text style={styles.cardResumo}>{resumoDoAluno(item)}</Text>
             </View>
           </Pressable>

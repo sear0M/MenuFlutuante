@@ -13,10 +13,11 @@ export async function montarBackup() {
     const medicoes = await getDocs(
       query(collection(db, 'alunos', aluno.id, 'medicoes'), orderBy('data', 'asc'))
     );
-    const { nome, dataNascimento, alturaPadrao, consentimentoEm, criadoEm } = aluno.data();
+    const { nome, dataNascimento, sexo, alturaPadrao, consentimentoEm, criadoEm } = aluno.data();
     dados.push({
       nome,
       dataNascimento,
+      sexo: sexo ?? null,
       alturaPadrao: alturaPadrao ?? null,
       consentimentoEm,
       criadoEm,

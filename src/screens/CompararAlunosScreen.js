@@ -5,7 +5,9 @@ import { useFocusEffect } from '@react-navigation/native';
 
 import { listarAlunos } from '../data/alunos';
 import { CORES } from '../theme/cores';
+import { idadeEm, isoParaData } from '../utils/datas';
 import { formatarVariacao, calcularEvolucao } from '../utils/evolucao';
+import { estimarGordura, rotuloSexo } from '../utils/gordura';
 import { formatarNumero } from '../utils/imc';
 
 export default function CompararAlunosScreen() {
@@ -76,9 +78,15 @@ export default function CompararAlunosScreen() {
           <Text style={styles.tituloTabela}>Comparação</Text>
           {escolhidos.map((aluno) => {
             const evolucao = calcularEvolucao(aluno.medicoes);
+            const ultima = aluno.medicoes[aluno.medicoes.length - 1];
+            const gordura = ultima
+              ? estimarGordura(ultima.imc, idadeEm(aluno.dataNascimento, isoParaData(ultima.data)), aluno.sexo)
+              : null;
             return (
               <View key={aluno.id} style={styles.linhaAluno}>
-                <Text style={styles.nomeAluno}>{aluno.nome}</Text>
+                <Text style={styles.nomeAluno}>
+                  {aluno.nome} <Text style={styles.sexoAluno}>· {rotuloSexo(aluno.sexo)}</Text>
+                </Text>
                 {evolucao ? (
                   <View>
                     <Text style={styles.detalhe}>
@@ -89,6 +97,12 @@ export default function CompararAlunosScreen() {
                       Variação {formatarVariacao(evolucao.deltaKg)} kg ({formatarVariacao(evolucao.deltaPercentual)}%)
                     </Text>
                     <Text style={styles.detalhe}>Medições: {evolucao.totalMedicoes}</Text>
+                    {gordura ? (
+                      <Text style={styles.detalhe}>
+                        Gordura estimada atual {formatarNumero(gordura.percentual, 1)}% ·{' '}
+                        <Text style={{ color: gordura.corTexto, fontWeight: '600' }}>{gordura.classificacao}</Text>
+                      </Text>
+                    ) : null}
                   </View>
                 ) : (
                   <Text style={styles.detalhe}>Sem medições ainda</Text>
@@ -171,6 +185,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: CORES.primaria,
     marginBottom: 4,
+  },
+  sexoAluno: {
+    fontSize: 14,
+    fontWeight: 'normal',
+    color: CORES.textoSecundario,
   },
   detalhe: {
     fontSize: 14,
